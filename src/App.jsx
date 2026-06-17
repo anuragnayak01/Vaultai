@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
 
-// ── Constants ─────────────────────────────────────────────────
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages'
-const MODEL         = 'claude-sonnet-4-6'
-
 // ── Helpers ───────────────────────────────────────────────────
 const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(1)+' MB'
 const fmtTime  = ts => new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
@@ -72,7 +68,7 @@ function GuideModal({ onClose }) {
     { icon:'📋', title:'Run the SQL schema',            desc:'In Supabase → SQL Editor → paste the contents of schema.sql → click Run. This creates all tables and enables real-time.' },
     { icon:'🚀', title:'Deploy to Vercel',              desc:'Push this repo to GitHub → go to vercel.com → Import repo → add env vars VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY → Deploy.' },
     { icon:'🔗', title:'Share the Vercel URL',          desc:'Vercel gives you a URL like https://vaultai-xyz.vercel.app — share this with any teammate. Anyone who opens it joins the same vault.' },
-    { icon:'🙋', title:'Enter name + API key',          desc:'Each user types their name and their Anthropic API key on first open. The key is saved in their browser (localStorage) — not shared.' },
+    { icon:'🙋', title:'Enter your name',               desc:'Each user types their name on first open. That is all — no API key, no signup, no cost. Claude responds via the MCP server running on your machine.' },
     { icon:'📂', title:'Create a project',              desc:'Click + New Project, name it (e.g. "MIR Spectroscopy"), add a description. It appears in everyone\'s sidebar instantly via Supabase real-time.' },
     { icon:'📋', title:'Fill the Context tab',          desc:'Go to 📋 Context → write everything Claude should always know: tech stack, findings, decisions, file summaries, hypotheses. Claude reads this on every message.' },
     { icon:'💬', title:'Chat simultaneously',           desc:'All users can type messages at the same time. Each message is a separate database row — no overwriting, no conflicts. Responses appear live for everyone.' },
@@ -111,16 +107,13 @@ function GuideModal({ onClose }) {
 
 // ── Login Screen ──────────────────────────────────────────────
 function LoginScreen({ onLogin }) {
-  const [name,    setName]    = useState('')
-  const [apiKey,  setApiKey]  = useState(() => localStorage.getItem('vaultai_apikey') || '')
-  const [guide,   setGuide]   = useState(false)
-  const [err,     setErr]     = useState('')
+  const [name,  setName]  = useState('')
+  const [guide, setGuide] = useState(false)
+  const [err,   setErr]   = useState('')
 
   function submit() {
-    if (!name.trim())   { setErr('Please enter your name'); return }
-    if (!apiKey.trim()) { setErr('Please enter your Anthropic API key'); return }
-    localStorage.setItem('vaultai_apikey', apiKey.trim())
-    onLogin(name.trim(), apiKey.trim())
+    if (!name.trim()) { setErr('Please enter your name'); return }
+    onLogin(name.trim())
   }
 
   return (
@@ -128,19 +121,17 @@ function LoginScreen({ onLogin }) {
       <div style={{textAlign:'center',maxWidth:420,padding:32,width:'100%'}}>
         <div style={{width:80,height:80,background:C.grad,borderRadius:22,display:'flex',alignItems:'center',justifyContent:'center',fontSize:40,margin:'0 auto 20px',boxShadow:`0 0 50px ${C.acc}55`}}>🧠</div>
         <h1 style={{color:C.text,fontSize:32,fontWeight:700,margin:'0 0 6px',letterSpacing:-0.8}}>VaultAI</h1>
-        <p style={{color:C.muted,fontSize:14,margin:'0 0 28px'}}>Shared AI project notebooks · real-time multi-user</p>
-
+        <p style={{color:C.muted,fontSize:14,margin:'0 0 6px'}}>Shared AI project notebooks · real-time multi-user</p>
+        <div style={{display:'inline-flex',alignItems:'center',gap:6,background:'#7C3AED18',border:'1px solid #7C3AED44',borderRadius:20,padding:'4px 14px',marginBottom:28}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:'#22C55E',boxShadow:'0 0 6px #22C55E'}}/>
+          <span style={{color:'#A78BFA',fontSize:12}}>AI via Claude Desktop MCP · no API key needed</span>
+        </div>
         <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
           <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}
-            placeholder="Your name"
-            style={{width:'100%',padding:'12px 14px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10,color:C.text,fontSize:14,outline:'none'}}/>
-          <input value={apiKey} onChange={e=>setApiKey(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}
-            placeholder="Anthropic API key  (sk-ant-...)"
-            type="password"
-            style={{width:'100%',padding:'12px 14px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10,color:C.text,fontSize:14,outline:'none'}}/>
+            placeholder="Your name" autoFocus
+            style={{width:'100%',padding:'13px 14px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10,color:C.text,fontSize:14,outline:'none'}}/>
           {err && <p style={{color:'#F87171',fontSize:13,margin:0,textAlign:'left'}}>{err}</p>}
         </div>
-
         <button onClick={submit}
           style={{width:'100%',padding:'13px',background:C.grad,border:'none',borderRadius:10,color:'#fff',fontSize:15,fontWeight:600,cursor:'pointer',marginBottom:12}}>
           Enter Workspace →
@@ -149,7 +140,7 @@ function LoginScreen({ onLogin }) {
           style={{background:'none',border:'none',color:C.muted,fontSize:13,cursor:'pointer',textDecoration:'underline'}}>
           📖 Setup & usage guide
         </button>
-        <p style={{color:'#1E293B',fontSize:11.5,marginTop:16}}>API key stored in your browser only · never sent to any server</p>
+        <p style={{color:'#1E293B',fontSize:11.5,marginTop:16}}>Free · Claude responds via MCP · no API key required</p>
       </div>
       {guide && <GuideModal onClose={() => setGuide(false)} />}
     </div>
@@ -159,7 +150,6 @@ function LoginScreen({ onLogin }) {
 // ── Main App ──────────────────────────────────────────────────
 export default function App() {
   const [username, setUsername] = useState('')
-  const [apiKey,   setApiKey]   = useState('')
 
   const [projects,  setProjects]  = useState([])
   const [proj,      setProj]      = useState(null)
@@ -304,65 +294,15 @@ export default function App() {
     if (!input.trim() || typing) return
     const content = input.trim()
     setInput('')
-    setTyping(true)
     isAtBottom.current = true
     inputRef.current?.focus()
 
-    // Save user message
-    const { data: userMsg, error: uErr } = await supabase.from('messages').insert({
+    // Save user message to Supabase — Claude picks it up via MCP
+    const { error: uErr } = await supabase.from('messages').insert({
       project_id: proj.id, role: 'user', content, username, thinking: null
-    }).select().single()
-    if (uErr) { setError('Send failed: ' + uErr.message); setTyping(false); return }
-
-    try {
-      // Build history for API
-      const { data: history } = await supabase
-        .from('messages').select('role,content').eq('project_id', proj.id).order('created_at', { ascending:true })
-
-      const system = [
-        `You are a project AI assistant for "${proj.name}"${proj.description ? `. ${proj.description}` : ''}.`,
-        context ? `\n\n## Project Knowledge Base (always reference this):\n${context}` : '',
-        `\n\nWrite all code in markdown code blocks with language tags. Be thorough and precise.`
-      ].join('')
-
-      const res = await fetch(ANTHROPIC_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          max_tokens: 16000,
-          thinking: { type: 'enabled', budget_tokens: 8000 },
-          system,
-          messages: (history || []).map(m => ({ role: m.role, content: m.content }))
-        })
-      })
-
-      const data = await res.json()
-      if (data.error) throw new Error(data.error.message)
-
-      let thinking = '', reply = ''
-      for (const b of (data.content || [])) {
-        if (b.type === 'thinking') thinking = b.thinking
-        if (b.type === 'text')    reply    = b.text
-      }
-
-      await supabase.from('messages').insert({
-        project_id: proj.id, role: 'assistant', content: reply || 'No response.',
-        username: 'Claude', thinking: thinking || null
-      })
-    } catch (e) {
-      await supabase.from('messages').insert({
-        project_id: proj.id, role: 'assistant',
-        content: `⚠️ Error: ${e.message}`, username: 'Claude', thinking: null
-      })
-    } finally {
-      setTyping(false)
-    }
+    })
+    if (uErr) { setError('Send failed: ' + uErr.message); return }
+    // Claude Desktop (with VaultAI MCP) will see this message and respond automatically
   }
 
   async function saveContext() {
@@ -456,7 +396,7 @@ export default function App() {
     if (proj?.id === p.id) { setProj(null); setMessages([]); setFiles([]); setContext('') }
   }
 
-  function handleLogin(name, key) { setUsername(name); setApiKey(key) }
+  function handleLogin(name) { setUsername(name) }
 
   // ── LOGIN ──────────────────────────────────────────────────
   if (!username) return <LoginScreen onLogin={handleLogin} />
@@ -530,7 +470,7 @@ export default function App() {
         <div style={{padding:'8px',borderTop:`1px solid ${C.b1}`,display:'flex',gap:5}}>
           <button onClick={() => { setUsername(''); setApiKey(''); setProj(null) }}
             style={{flex:1,padding:'7px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:7,color:C.muted,fontSize:12,cursor:'pointer'}}>⇄ Switch</button>
-          <button onClick={() => { localStorage.removeItem('vaultai_apikey'); setUsername(''); setApiKey('') }}
+          <button onClick={() => { setUsername(''); setProj(null); setMessages([]); setFiles([]); setContext('') }}
             style={{flex:1,padding:'7px',background:'#160A0A',border:'1px solid #2D1515',borderRadius:7,color:'#F87171',fontSize:12,cursor:'pointer'}}>✕ Logout</button>
         </div>
       </div>
@@ -602,8 +542,14 @@ export default function App() {
                   {messages.length===0 && (
                     <div style={{textAlign:'center',color:'#2D3A4A',marginTop:60}}>
                       <div style={{fontSize:40,marginBottom:10}}>💬</div>
-                      <p style={{fontSize:15,margin:'0 0 4px'}}>Chat about <strong style={{color:'#475569'}}>{proj.name}</strong></p>
-                      <p style={{fontSize:12,color:'#1E2A36'}}>Add knowledge in 📋 Context so Claude always knows your project</p>
+                      <p style={{fontSize:15,margin:'0 0 4px',color:'#475569'}}>No messages yet in <strong>{proj.name}</strong></p>
+                      <div style={{marginTop:16,padding:'14px 20px',background:'#0A1020',border:'1px solid #1A2A40',borderRadius:12,display:'inline-block',textAlign:'left'}}>
+                        <p style={{fontSize:12,color:'#374151',margin:'0 0 6px',fontWeight:600}}>How Claude responds here:</p>
+                        <p style={{fontSize:12,color:'#2D3A4A',margin:'0 0 4px'}}>1. You type a message → it saves to Supabase</p>
+                        <p style={{fontSize:12,color:'#2D3A4A',margin:'0 0 4px'}}>2. Claude Desktop (with VaultAI MCP) sees it</p>
+                        <p style={{fontSize:12,color:'#2D3A4A',margin:'0 0 4px'}}>3. Claude replies → auto-saves back here</p>
+                        <p style={{fontSize:12,color:'#2D3A4A',margin:0}}>4. All teammates see everything in real-time ✅</p>
+                      </div>
                     </div>
                   )}
                   {messages.map(m => (
