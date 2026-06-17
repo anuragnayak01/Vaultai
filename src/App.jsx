@@ -398,22 +398,36 @@ export default function App() {
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = '' }
   }
 
+  // Tries file_contents table first (MCP-saved files), then falls back to Storage (web uploads)
+  async function getFileText(f) {
+    const { data: fc } = await supabase
+      .from('file_contents').select('content').eq('file_id', f.id).maybeSingle()
+    if (fc?.content) return { text: fc.content, fromDB: true }
+    const { data: blob, error } = await supabase.storage.from('vault-files').download(f.storage_path)
+    if (error) throw new Error(error.message)
+    return { text: await blob.text(), fromDB: false }
+  }
+
   async function downloadFile(f) {
-    const { data, error } = await supabase.storage.from('vault-files').download(f.storage_path)
-    if (error) { alert('Download failed: ' + error.message); return }
-    const url = URL.createObjectURL(data)
-    const a = document.createElement('a'); a.href = url; a.download = f.name; a.click()
-    URL.revokeObjectURL(url)
+    try {
+      const { text } = await getFileText(f)
+      const blob = new Blob([text], { type: 'text/plain' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a'); a.href = url; a.download = f.name; a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) { alert('Download failed: ' + e.message) }
   }
 
   async function previewFile(f) {
-    const { data, error } = await supabase.storage.from('vault-files').download(f.storage_path)
-    if (error) { alert('Preview failed'); return }
-    setViewText(await data.text()); setViewFile(f)
+    try {
+      const { text } = await getFileText(f)
+      setViewText(text); setViewFile(f)
+    } catch (e) { alert('Preview failed: ' + e.message) }
   }
 
   async function deleteFile(f) {
-    await supabase.storage.from('vault-files').remove([f.storage_path])
+    await supabase.from('file_contents').delete().eq('file_id', f.id)
+    await supabase.storage.from('vault-files').remove([f.storage_path]).catch(() => {})
     await supabase.from('files').delete().eq('id', f.id)
     setFiles(prev => prev.filter(x => x.id !== f.id))
   }
