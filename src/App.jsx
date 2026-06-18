@@ -625,29 +625,46 @@ export default function App() {
                     accept=".py,.pdf,.ipynb,.txt,.md,.csv,.json,.js,.jsx,.ts,.tsx,.r,.sql,.yaml,.yml,.sh,.log"/>
                 </div>
                 {files.length===0
-                  ? <p style={{textAlign:'center',color:'#2D3A4A',fontSize:14}}>No files uploaded yet</p>
-                  : <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                      {files.map(f => (
-                        <div key={f.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 15px',
-                          background:C.panel,border:`1px solid ${C.b2}`,borderRadius:11}}>
-                          <span style={{fontSize:22,flexShrink:0}}>{fIcon(f.name)}</span>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{color:'#E2E8F0',fontSize:13.5,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.name}</div>
-                            <div style={{color:'#475569',fontSize:11.5,marginTop:2}}>{fmtBytes(f.size_bytes)} · {f.username} · {fmtDate(f.created_at)}</div>
-                          </div>
-                          <div style={{display:'flex',gap:5,flexShrink:0}}>
-                            {isText(f.name) && (
-                              <button onClick={() => previewFile(f)}
-                                style={{padding:'5px 10px',background:'#0A1929',border:'1px solid #1E3A5F',borderRadius:7,color:'#60A5FA',fontSize:12,cursor:'pointer'}}>👁</button>
-                            )}
-                            <button onClick={() => downloadFile(f)}
-                              style={{padding:'5px 10px',background:'#0A1929',border:'1px solid #1E3A5F',borderRadius:7,color:'#38BDF8',fontSize:12,cursor:'pointer'}}>↓</button>
-                            <button onClick={() => deleteFile(f)}
-                              style={{padding:'5px 8px',background:'#160A0A',border:'1px solid #3A1010',borderRadius:7,color:'#F87171',fontSize:12,cursor:'pointer'}}>✕</button>
-                          </div>
+                  ? <p style={{textAlign:'center',color:'#2D3A4A',fontSize:14}}>No files yet. Claude saves files here automatically via MCP.</p>
+                  : (() => {
+                      // Group files by folder
+                      const grouped = {}
+                      for (const f of files) {
+                        const folder = f.folder || 'general'
+                        if (!grouped[folder]) grouped[folder] = []
+                        grouped[folder].push(f)
+                      }
+                      const folderIcons = { code:'🐍', docs:'📄', data:'📊', results:'📈', config:'⚙️', reports:'📋', general:'📁' }
+                      return (
+                        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+                          {Object.entries(grouped).map(([folder, fls]) => (
+                            <div key={folder}>
+                              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,padding:'6px 10px',background:'#0A0C14',borderRadius:8,border:`1px solid ${C.b2}`}}>
+                                <span style={{fontSize:15}}>{folderIcons[folder]||'📁'}</span>
+                                <span style={{color:'#A78BFA',fontSize:13,fontWeight:600}}>{folder}/</span>
+                                <span style={{color:C.dim,fontSize:11,marginLeft:'auto'}}>{fls.length} file{fls.length!==1?'s':''}</span>
+                              </div>
+                              <div style={{display:'flex',flexDirection:'column',gap:6,paddingLeft:12}}>
+                                {fls.map(f => (
+                                  <div key={f.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10}}>
+                                    <span style={{fontSize:20,flexShrink:0}}>{fIcon(f.name)}</span>
+                                    <div style={{flex:1,minWidth:0}}>
+                                      <div style={{color:'#E2E8F0',fontSize:13,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.name}</div>
+                                      <div style={{color:'#475569',fontSize:11,marginTop:2}}>{fmtBytes(f.size_bytes)} · {f.username} · {fmtDate(f.created_at)}</div>
+                                    </div>
+                                    <div style={{display:'flex',gap:5,flexShrink:0}}>
+                                      {isText(f.name) && <button onClick={()=>previewFile(f)} style={{padding:'4px 9px',background:'#0A1929',border:'1px solid #1E3A5F',borderRadius:6,color:'#60A5FA',fontSize:12,cursor:'pointer'}}>👁</button>}
+                                      <button onClick={()=>downloadFile(f)} style={{padding:'4px 9px',background:'#0A1929',border:'1px solid #1E3A5F',borderRadius:6,color:'#38BDF8',fontSize:12,cursor:'pointer'}}>↓</button>
+                                      <button onClick={()=>deleteFile(f)} style={{padding:'4px 7px',background:'#160A0A',border:'1px solid #3A1010',borderRadius:6,color:'#F87171',fontSize:12,cursor:'pointer'}}>✕</button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      )
+                    })()
                 }
               </div>
             )}
