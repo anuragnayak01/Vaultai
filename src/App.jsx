@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -147,6 +147,154 @@ function LoginScreen({ onLogin }) {
   )
 }
 
+
+// ── File Tree Component ───────────────────────────────────────
+function FileTree({ files, onPreview, onDownload, onDelete }) {
+  const [collapsed, setCollapsed] = React.useState({})
+  const C2 = { panel:"#111318", b2:"#1A1D2E", dim:"#374151", text:"#F1F5F9" }
+
+  // Build nested tree from flat files list
+  function buildTree(files) {
+    const tree = {}
+    for (const f of files) {
+      const parts = (f.folder || 'general').split('/')
+      let node = tree
+      for (const part of parts) {
+        if (!node[part]) node[part] = { __files: [] }
+        node = node[part]
+      }
+      node.__files.push(f)
+    }
+    return tree
+  }
+
+  function toggleFolder(path) {
+    setCollapsed(prev => ({ ...prev, [path]: !prev[path] }))
+  }
+
+  function countFiles(node) {
+    let count = (node.__files || []).length
+    for (const [k, v] of Object.entries(node)) {
+      if (k !== '__files') count += countFiles(v)
+    }
+    return count
+  }
+
+  function FolderIcon({ name }) {
+    const icons = { config:'⚙️', src:'📦', tests:'🧪', quality_control:'🔍',
+      preprocessing:'🔧', partitioning:'✂️', feature_extraction:'🔬',
+      selection:'🎯', clustering:'🔗', neural:'🧠', modeling:'📐',
+      uncertainty:'📊', evaluation:'📈', general:'📁', code:'🐍',
+      docs:'📄', data:'📊', results:'📉' }
+    return <span>{icons[name] || '📁'}</span>
+  }
+
+  function RenderNode({ node, name, depth, path }) {
+    const isOpen = !collapsed[path]
+    const files  = node.__files || []
+    const subdirs = Object.entries(node).filter(([k]) => k !== '__files')
+    const total  = countFiles(node)
+    const indent = depth * 16
+
+    return (
+      <div key={path}>
+        {/* Folder row */}
+        <div
+          onClick={() => toggleFolder(path)}
+          style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 10px',
+            paddingLeft: 10 + indent, cursor:'pointer', borderRadius:7,
+            background: isOpen ? '#0D0F1A' : 'transparent',
+            border: isOpen ? '1px solid #1A1D2E' : '1px solid transparent',
+            marginBottom:2, transition:'all .15s',
+            userSelect:'none' }}
+          onMouseEnter={e => { if(!isOpen) e.currentTarget.style.background='#0A0C12' }}
+          onMouseLeave={e => { if(!isOpen) e.currentTarget.style.background='transparent' }}
+        >
+          <span style={{fontSize:11,color:'#475569',width:10}}>{isOpen ? '▾' : '▸'}</span>
+          <FolderIcon name={name}/>
+          <span style={{color:'#A78BFA',fontSize:12.5,fontWeight:600,fontFamily:"'JetBrains Mono',monospace"}}>{name}/</span>
+          <span style={{color:'#374151',fontSize:11,marginLeft:'auto'}}>{total} file{total!==1?'s':''}</span>
+        </div>
+
+        {/* Contents */}
+        {isOpen && (
+          <div style={{marginLeft: indent + 8, marginBottom:4}}>
+            {/* Subdirectories first */}
+            {subdirs.map(([k, v]) => (
+              <RenderNode key={k} node={v} name={k} depth={depth+1} path={path+'/'+k} />
+            ))}
+            {/* Files */}
+            {files.map(f => (
+              <div key={f.id} style={{ display:'flex', alignItems:'center', gap:10,
+                padding:'7px 10px', paddingLeft: 10 + (depth+1)*16,
+                borderRadius:7, marginBottom:2,
+                background:'#0B0D14', border:'1px solid #14161F',
+                transition:'border-color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor='#1A1D2E'}
+                onMouseLeave={e => e.currentTarget.style.borderColor='#14161F'}
+              >
+                <span style={{fontSize:14,flexShrink:0}}>{fIcon(f.name)}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{color:'#C4B5FD',fontSize:12.5,fontWeight:500,
+                    fontFamily:"'JetBrains Mono',monospace",
+                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.name}</div>
+                  <div style={{color:'#374151',fontSize:10.5,marginTop:1}}>
+                    {fmtBytes(f.size_bytes)} · {f.username} · {fmtDate(f.created_at)}
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:4,flexShrink:0}}>
+                  {isText(f.name) && (
+                    <button onClick={()=>onPreview(f)}
+                      style={{padding:'3px 8px',background:'#0A1929',border:'1px solid #1E3A5F',
+                        borderRadius:5,color:'#60A5FA',fontSize:11,cursor:'pointer'}}>👁</button>
+                  )}
+                  <button onClick={()=>onDownload(f)}
+                    style={{padding:'3px 8px',background:'#0A1929',border:'1px solid #1E3A5F',
+                      borderRadius:5,color:'#38BDF8',fontSize:11,cursor:'pointer'}}>↓</button>
+                  <button onClick={()=>onDelete(f)}
+                    style={{padding:'3px 7px',background:'#160A0A',border:'1px solid #3A1010',
+                      borderRadius:5,color:'#F87171',fontSize:11,cursor:'pointer'}}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const tree = buildTree(files)
+  const totalFiles = files.length
+  const totalFolders = new Set(files.map(f => f.folder || 'general')).size
+
+  return (
+    <div>
+      {/* Tree header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+        padding:'8px 12px',background:'#0A0C14',borderRadius:9,
+        border:'1px solid #1A1D2E',marginBottom:12}}>
+        <span style={{color:'#64748B',fontSize:12}}>📂 {totalFolders} folder{totalFolders!==1?'s':''} · {totalFiles} file{totalFiles!==1?'s':''}</span>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>setCollapsed({})}
+            style={{padding:'3px 10px',background:'transparent',border:'1px solid #1A1D2E',
+              borderRadius:5,color:'#64748B',fontSize:11,cursor:'pointer'}}>Expand all</button>
+          <button onClick={()=>{
+            const all={}
+            for(const f of files){ const p=(f.folder||'general').split('/').reduce((acc,p,i,arr)=>{ acc[arr.slice(0,i+1).join('/')]= true; return acc },{}) ; Object.assign(all,p) }
+            setCollapsed(all)
+          }}
+            style={{padding:'3px 10px',background:'transparent',border:'1px solid #1A1D2E',
+              borderRadius:5,color:'#64748B',fontSize:11,cursor:'pointer'}}>Collapse all</button>
+        </div>
+      </div>
+      {/* Tree */}
+      {Object.entries(tree).map(([k, v]) => (
+        <RenderNode key={k} node={v} name={k} depth={0} path={k} />
+      ))}
+    </div>
+  )
+}
+
 // ── Main App ──────────────────────────────────────────────────
 export default function App() {
   const [username, setUsername] = useState('')
@@ -171,6 +319,9 @@ export default function App() {
   const [ctxDraft, setCtxDraft] = useState('')
 
   const [activeUsers, setActiveUsers] = useState([])
+  const [dbProgress,  setDbProgress]  = useState([])
+  const [testResults, setTestResults] = useState([])
+  const [aiReviews,   setAiReviews]   = useState([])
   const [loading,     setLoading]     = useState(false)
   const [showNew,     setShowNew]     = useState(false)
   const [showGuide,   setShowGuide]   = useState(false)
@@ -507,9 +658,10 @@ export default function App() {
               </div>
               <div style={{display:'flex',gap:5,flexShrink:0}}>
                 {[
-                  { k:'chat',    l:`💬 Chat${newMsgBanner&&tab!=='chat'?' 🔴':''}` },
+                  { k:'state',   l:'🎯 Project State' },
                   { k:'files',   l:`📁 Files (${files.length})` },
-                  { k:'context', l:'📋 Context' }
+                  { k:'context', l:'📋 Context' },
+                  { k:'chat',    l:`💬 Chat${newMsgBanner&&tab!=='chat'?' 🔴':''}` },
                 ].map(({k,l}) => (
                   <button key={k} onClick={() => { setTab(k); if(k==='chat') setNewMsgBanner(false) }}
                     style={btn(tab===k)}>
@@ -532,6 +684,122 @@ export default function App() {
                 <span style={{color:'#A78BFA',fontSize:13}}>🔔 New messages from teammate</span>
                 <button onClick={() => { setNewMsgBanner(false); isAtBottom.current=true; bottomRef.current?.scrollIntoView({behavior:'smooth'}) }}
                   style={{padding:'4px 12px',background:C.acc,border:'none',borderRadius:6,color:'#fff',fontSize:12,cursor:'pointer'}}>Jump ↓</button>
+              </div>
+            )}
+
+
+            {/* ── PROJECT STATE TAB ─────────────────────────────── */}
+            {tab==='state' && (
+              <div style={{flex:1,overflowY:'auto',padding:22,display:'flex',flexDirection:'column',gap:16}}>
+
+                {/* Stats bar from real DB */}
+                {dbProgress.length > 0 && (() => {
+                  const done=dbProgress.filter(r=>r.status==='✅ Done').length
+                  const wip=dbProgress.filter(r=>r.status==='🔄 In Progress').length
+                  const todo=dbProgress.filter(r=>r.status==='⬜ Todo').length
+                  const blk=dbProgress.filter(r=>r.status==='❌ Blocked').length
+                  const pct=Math.round((done/dbProgress.length)*100)
+                  return (
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                        {[{l:'Done',c:done,bg:'#052E16',col:'#4ADE80',b:'#166534'},{l:'In Progress',c:wip,bg:'#172554',col:'#60A5FA',b:'#1E3A5F'},{l:'Todo',c:todo,bg:'#1C1917',col:'#A8A29E',b:'#292524'},{l:'Blocked',c:blk,bg:'#2D0A0A',col:'#F87171',b:'#5A1010'}].filter(s=>s.c>0).map(s=>(
+                          <div key={s.l} style={{padding:'8px 16px',background:s.bg,border:`1px solid ${s.b}`,borderRadius:9,textAlign:'center',minWidth:72}}>
+                            <div style={{color:s.col,fontSize:22,fontWeight:700}}>{s.c}</div>
+                            <div style={{color:s.col,fontSize:11,opacity:.8}}>{s.l}</div>
+                          </div>
+                        ))}
+                        <div style={{flex:1,display:'flex',alignItems:'center',gap:10,paddingLeft:4}}>
+                          <div style={{flex:1,height:7,background:'#1A1D2E',borderRadius:4,overflow:'hidden'}}>
+                            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,#22C55E,#4ADE80)',borderRadius:4,transition:'width .5s'}}/>
+                          </div>
+                          <span style={{color:'#4ADE80',fontSize:13,fontWeight:600,flexShrink:0}}>{pct}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Module progress table from DB */}
+                {dbProgress.length > 0 && (
+                  <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10,overflow:'hidden'}}>
+                    <div style={{padding:'8px 14px',background:'#0A0C14',borderBottom:`1px solid ${C.b2}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{color:'#A78BFA',fontSize:13,fontWeight:600}}>Module Progress</span>
+                      <span style={{color:C.dim,fontSize:11}}>{dbProgress.filter(r=>r.status==='🔄 In Progress').map(r=>r.module).join(', ')||'nothing active'}</span>
+                    </div>
+                    <div style={{overflowX:'auto'}}>
+                      <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                        <thead>
+                          <tr style={{background:'#0D0F17'}}>
+                            {['Module','File','Status','Notes','Updated'].map(h=>(
+                              <th key={h} style={{padding:'7px 12px',textAlign:'left',color:C.muted,fontWeight:500,borderBottom:`1px solid ${C.b2}`,whiteSpace:'nowrap'}}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {dbProgress.map((r,i)=>{
+                            const testRow = testResults.find(t=>t.module===r.module)
+                            const statusColor = r.status.includes('✅')?'#4ADE80':r.status.includes('🔄')?'#60A5FA':r.status.includes('❌')?'#F87171':'#64748B'
+                            return (
+                              <tr key={r.id} style={{borderBottom:`1px solid ${C.b1}`,background:i%2===0?'transparent':'#0A0C12'}}>
+                                <td style={{padding:'6px 12px',color:'#C4B5FD',fontFamily:"'JetBrains Mono',monospace",fontSize:11.5}}>{r.module}</td>
+                                <td style={{padding:'6px 12px',color:'#375569',fontFamily:"'JetBrains Mono',monospace",fontSize:10.5,maxWidth:180,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.file_path||'-'}</td>
+                                <td style={{padding:'6px 12px',color:statusColor,whiteSpace:'nowrap',fontSize:11.5}}>{r.status}</td>
+                                <td style={{padding:'6px 12px',color:C.muted,fontSize:11.5}}>
+                                  {r.notes||''}
+                                  {testRow && <span style={{marginLeft:6,color:testRow.failed===0?'#4ADE80':'#F87171',fontSize:10}}>({testRow.passed}/{testRow.total} tests)</span>}
+                                </td>
+                                <td style={{padding:'6px 12px',color:C.dim,fontSize:10.5,whiteSpace:'nowrap'}}>{r.updated_by} {fmtDate(r.updated_at)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Reviews section */}
+                {aiReviews.length > 0 && (
+                  <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10,overflow:'hidden'}}>
+                    <div style={{padding:'8px 14px',background:'#0A0C14',borderBottom:`1px solid ${C.b2}`}}>
+                      <span style={{color:'#A78BFA',fontSize:13,fontWeight:600}}>AI Code Reviews</span>
+                      <span style={{color:C.dim,fontSize:11,marginLeft:10}}>{aiReviews.filter(r=>!r.approved).length} pending · {aiReviews.filter(r=>r.approved).length} approved</span>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                      {aiReviews.slice(0,5).map((r,i)=>(
+                        <div key={r.id} style={{padding:'10px 14px',borderBottom:i<4?`1px solid ${C.b1}`:'none',display:'flex',gap:10,alignItems:'flex-start'}}>
+                          <div style={{flexShrink:0,width:28,height:28,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,background:r.approved?'#052E16':'#2D0A0A',border:`1px solid ${r.approved?'#166534':'#5A1010'}`}}>{r.approved?'✅':'⚠️'}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',gap:8,marginBottom:3,flexWrap:'wrap'}}>
+                              <span style={{color:'#E2E8F0',fontSize:12.5,fontWeight:500}}>{r.file_name||'unknown file'}</span>
+                              <span style={{color:'#A78BFA',fontSize:11}}>by {r.reviewer}</span>
+                              <span style={{fontSize:11,padding:'1px 7px',borderRadius:10,background:r.severity==='critical'?'#5A1010':r.severity==='high'?'#3A1F0A':'#1A1D2E',color:r.severity==='critical'?'#F87171':r.severity==='high'?'#FB923C':'#64748B'}}>{r.severity}</span>
+                            </div>
+                            <div style={{color:C.muted,fontSize:12,lineHeight:1.5}}>{r.review.slice(0,180)}{r.review.length>180?'...':''}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Context document (non-progress sections) */}
+                {context && (
+                  <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10,padding:'14px 16px'}}>
+                    <div style={{color:'#A78BFA',fontSize:12.5,fontWeight:600,marginBottom:8}}>📋 Project Knowledge Base</div>
+                    <pre style={{color:'#94A3B8',fontSize:13,lineHeight:1.8,whiteSpace:'pre-wrap',wordBreak:'break-word',fontFamily:'Inter,system-ui,sans-serif',margin:0}}>
+                      {context.replace(/PROGRESS_START[\s\S]*?PROGRESS_END/g,'').trim()}
+                    </pre>
+                  </div>
+                )}
+
+                {!context && dbProgress.length===0 && (
+                  <div style={{textAlign:'center',color:'#2D3A4A',marginTop:40}}>
+                    <div style={{fontSize:40,marginBottom:10}}>🎯</div>
+                    <p style={{fontSize:14,margin:'0 0 6px'}}>No project state yet</p>
+                    <p style={{fontSize:12,color:'#1E2A36'}}>Paste SOILMIR_INITIAL_STATE.md into 📋 Context tab to get started.</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -625,46 +893,8 @@ export default function App() {
                     accept=".py,.pdf,.ipynb,.txt,.md,.csv,.json,.js,.jsx,.ts,.tsx,.r,.sql,.yaml,.yml,.sh,.log"/>
                 </div>
                 {files.length===0
-                  ? <p style={{textAlign:'center',color:'#2D3A4A',fontSize:14}}>No files yet. Claude saves files here automatically via MCP.</p>
-                  : (() => {
-                      // Group files by folder
-                      const grouped = {}
-                      for (const f of files) {
-                        const folder = f.folder || 'general'
-                        if (!grouped[folder]) grouped[folder] = []
-                        grouped[folder].push(f)
-                      }
-                      const folderIcons = { code:'🐍', docs:'📄', data:'📊', results:'📈', config:'⚙️', reports:'📋', general:'📁' }
-                      return (
-                        <div style={{display:'flex',flexDirection:'column',gap:16}}>
-                          {Object.entries(grouped).map(([folder, fls]) => (
-                            <div key={folder}>
-                              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8,padding:'6px 10px',background:'#0A0C14',borderRadius:8,border:`1px solid ${C.b2}`}}>
-                                <span style={{fontSize:15}}>{folderIcons[folder]||'📁'}</span>
-                                <span style={{color:'#A78BFA',fontSize:13,fontWeight:600}}>{folder}/</span>
-                                <span style={{color:C.dim,fontSize:11,marginLeft:'auto'}}>{fls.length} file{fls.length!==1?'s':''}</span>
-                              </div>
-                              <div style={{display:'flex',flexDirection:'column',gap:6,paddingLeft:12}}>
-                                {fls.map(f => (
-                                  <div key={f.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:10}}>
-                                    <span style={{fontSize:20,flexShrink:0}}>{fIcon(f.name)}</span>
-                                    <div style={{flex:1,minWidth:0}}>
-                                      <div style={{color:'#E2E8F0',fontSize:13,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{f.name}</div>
-                                      <div style={{color:'#475569',fontSize:11,marginTop:2}}>{fmtBytes(f.size_bytes)} · {f.username} · {fmtDate(f.created_at)}</div>
-                                    </div>
-                                    <div style={{display:'flex',gap:5,flexShrink:0}}>
-                                      {isText(f.name) && <button onClick={()=>previewFile(f)} style={{padding:'4px 9px',background:'#0A1929',border:'1px solid #1E3A5F',borderRadius:6,color:'#60A5FA',fontSize:12,cursor:'pointer'}}>👁</button>}
-                                      <button onClick={()=>downloadFile(f)} style={{padding:'4px 9px',background:'#0A1929',border:'1px solid #1E3A5F',borderRadius:6,color:'#38BDF8',fontSize:12,cursor:'pointer'}}>↓</button>
-                                      <button onClick={()=>deleteFile(f)} style={{padding:'4px 7px',background:'#160A0A',border:'1px solid #3A1010',borderRadius:6,color:'#F87171',fontSize:12,cursor:'pointer'}}>✕</button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )
-                    })()
+                  ? <p style={{textAlign:'center',color:'#2D3A4A',fontSize:14,marginTop:40}}>No files yet.<br/>Claude saves files here automatically via MCP.</p>
+                  : <FileTree files={files} onPreview={previewFile} onDownload={downloadFile} onDelete={deleteFile} />
                 }
               </div>
             )}
