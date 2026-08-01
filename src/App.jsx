@@ -65,40 +65,57 @@ function ThinkBlock({ text }) {
 
 // ── Guide Modal ────────────────────────────────────────────────
 function GuideModal({ onClose }) {
-  const steps = [
-    { icon:'🗄️', title:'Create Supabase project',      desc:'Go to supabase.com → New project → copy Project URL and anon key from Settings → API.' },
-    { icon:'📋', title:'Run the SQL schema',            desc:'In Supabase → SQL Editor → paste the contents of schema.sql → click Run. This creates all tables and enables real-time.' },
-    { icon:'🚀', title:'Deploy to Vercel',              desc:'Push this repo to GitHub → go to vercel.com → Import repo → add env vars VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY → Deploy.' },
-    { icon:'🔗', title:'Share the Vercel URL',          desc:'Vercel gives you a URL like https://vaultai-xyz.vercel.app — share this with any teammate. Anyone who opens it joins the same vault.' },
-    { icon:'🙋', title:'Enter your name',               desc:'Each user types their name on first open. That is all — no API key, no signup, no cost. Claude responds via the MCP server running on your machine.' },
-    { icon:'📂', title:'Create a project',              desc:'Click + New Project, name it (e.g. "MIR Spectroscopy"), add a description. It appears in everyone\'s sidebar instantly via Supabase real-time.' },
-    { icon:'📋', title:'Fill the Context tab',          desc:'Go to 📋 Context → write everything Claude should always know: tech stack, findings, decisions, file summaries, hypotheses. Claude reads this on every message.' },
-    { icon:'💬', title:'Chat simultaneously',           desc:'All users can type messages at the same time. Each message is a separate database row — no overwriting, no conflicts. Responses appear live for everyone.' },
-    { icon:'💭', title:'Read Claude\'s thinking',       desc:'Every Claude reply has a 💭 block — click to see the full chain-of-thought reasoning. Toggle all thinking with 💭 in the header.' },
-    { icon:'📁', title:'Upload files',                  desc:'Go to 📁 Files → upload .py, .pdf, .ipynb, .md, .csv, .json (up to 5 MB). Files are stored in Supabase Storage. All users can download or delete.' },
-    { icon:'↓',  title:'Export chat',                  desc:'Click ↓ in the chat header to download the full conversation as Markdown — includes all messages, thinking blocks, and timestamps.' },
+  const phases = [
+    { level:'01', title:'Deploy the vault', sub:'One-time setup', steps:[
+      { title:'Create Supabase project',  desc:'Go to supabase.com → New project → copy Project URL and anon key from Settings → API.' },
+      { title:'Run the SQL schema',       desc:'In Supabase → SQL Editor → paste the contents of schema.sql → click Run. This creates all tables and enables real-time.' },
+      { title:'Deploy to Vercel',         desc:'Push this repo to GitHub → go to vercel.com → Import repo → add env vars VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY → Deploy.' },
+      { title:'Share the Vercel URL',     desc:'Vercel gives you a URL like https://vaultai-xyz.vercel.app — share this with any teammate. Anyone who opens it joins the same vault.' },
+    ]},
+    { level:'02', title:'Bring in the team', sub:'Onboarding', steps:[
+      { title:'Enter your name',          desc:'Each user types their name on first open. That is all — no API key, no signup, no cost. Claude responds via the MCP server running on your machine.' },
+      { title:'Create a project',         desc:'Click + New Project, name it (e.g. "MIR Spectroscopy"), add a description. It appears in everyone\'s sidebar instantly via Supabase real-time.' },
+      { title:'Fill the Context tab',     desc:'Go to Context → write everything Claude should always know: tech stack, findings, decisions, file summaries, hypotheses. Claude reads this on every message.' },
+    ]},
+    { level:'03', title:'Work in real time', sub:'Daily use', steps:[
+      { title:'Chat simultaneously',      desc:'All users can type messages at the same time. Each message is a separate database row — no overwriting, no conflicts. Responses appear live for everyone.' },
+      { title:'Read Claude\'s thinking',  desc:'Every Claude reply has a 💭 block — click to see the full chain-of-thought reasoning. Toggle all thinking with 💭 in the header.' },
+      { title:'Upload files',             desc:'Go to Files → upload .py, .pdf, .ipynb, .md, .csv, .json (up to 5 MB). Files are stored in Supabase Storage. All users can download or delete.' },
+      { title:'Export chat',              desc:'Click ↓ in the chat header to download the full conversation as Markdown — includes all messages, thinking blocks, and timestamps.' },
+    ]},
   ]
   return (
     <div style={{position:'fixed',inset:0,background:'#000000AA',display:'flex',alignItems:'center',justifyContent:'center',zIndex:300}}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{background:'#050505',border:`1px solid ${C.b2}`,borderRadius:6,width:'min(740px,96vw)',maxHeight:'88vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 40px 80px #00000080'}}>
+      <div style={{background:'#050505',border:`1px solid ${C.b2}`,borderRadius:6,width:'min(820px,96vw)',maxHeight:'88vh',display:'flex',flexDirection:'column',overflow:'hidden',boxShadow:'0 40px 80px #00000080'}}>
         <div style={{padding:'20px 22px',borderBottom:`1px solid ${C.b1}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
-            <div style={{...eyebrow,marginBottom:6}}>Documentation</div>
+            <div style={{...eyebrow,marginBottom:6}}>◈ Your Journey</div>
             <h2 style={{color:C.text,fontSize:20,fontWeight:700,margin:'0 0 3px',letterSpacing:-0.4}}>How to use VaultAI</h2>
-            <p style={{color:C.muted,fontSize:12.5,margin:0}}>Full setup + usage guide</p>
+            <p style={{color:C.muted,fontSize:12.5,margin:0}}>Full setup + usage guide, in three levels</p>
           </div>
           <button onClick={onClose} style={{padding:'6px 14px',background:'#160A0A',border:'1px solid #3A1010',borderRadius:4,color:'#F87171',fontSize:13,cursor:'pointer'}}>✕ Close</button>
         </div>
-        <div style={{overflowY:'auto',padding:'18px 22px',display:'flex',flexDirection:'column',gap:10}}>
-          {steps.map((s,i) => (
-            <div key={i} style={{display:'flex',gap:14,padding:'13px 15px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6}}>
-              <div style={{width:36,height:36,borderRadius:6,background:C.grad,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0}}>{s.icon}</div>
-              <div>
-                <div style={{color:C.text,fontSize:13.5,fontWeight:600,marginBottom:3}}>
-                  <span style={{color:C.dim,fontSize:11,fontWeight:600,marginRight:8,fontFamily:C.mono,letterSpacing:0.5}}>{String(i+1).padStart(2,'0')}</span>{s.title}
+        <div style={{overflowY:'auto',padding:'20px 22px',display:'flex',flexDirection:'column',gap:16}}>
+          {phases.map((ph,pi) => (
+            <div key={ph.level} style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,overflow:'hidden'}}>
+              <div style={{padding:'14px 18px',borderBottom:`1px solid ${C.b1}`,display:'flex',alignItems:'center',gap:16}}>
+                <div style={{fontFamily:C.mono,fontSize:26,fontWeight:700,color:C.dim,flexShrink:0,letterSpacing:-1}}>{ph.level}</div>
+                <div>
+                  <div style={{...eyebrow,fontSize:9,marginBottom:3}}>LEVEL {ph.level} · {ph.sub}</div>
+                  <div style={{color:C.text,fontSize:15,fontWeight:700}}>{ph.title}</div>
                 </div>
-                <div style={{color:C.muted,fontSize:12.5,lineHeight:1.65}}>{s.desc}</div>
+              </div>
+              <div style={{padding:'6px 18px 12px'}}>
+                {ph.steps.map((s,i) => (
+                  <div key={i} style={{display:'flex',gap:12,padding:'10px 0',borderTop:i>0?`1px solid ${C.b1}`:'none'}}>
+                    <span style={{fontFamily:C.mono,fontSize:10.5,color:C.dim,flexShrink:0,marginTop:2}}>{String(i+1).padStart(2,'0')}</span>
+                    <div>
+                      <div style={{color:C.text,fontSize:13,fontWeight:600,marginBottom:2}}>{s.title}</div>
+                      <div style={{color:C.muted,fontSize:12,lineHeight:1.6}}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
@@ -655,12 +672,30 @@ export default function App() {
         )}
 
         {!proj ? (
-          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:14}}>
-            <div style={{fontSize:50}}>📂</div>
-            <p style={{color:C.dim,fontSize:16,margin:0}}>Select or create a project</p>
-            <div style={{display:'flex',gap:10}}>
-              <button onClick={() => setShowNew(true)} style={{padding:'10px 22px',background:C.grad,border:'none',borderRadius:3,color:C.onAcc,fontSize:14,fontWeight:600,cursor:'pointer'}}>+ New Project</button>
-              <button onClick={() => setShowGuide(true)} style={{padding:'10px 16px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:5,color:C.muted,fontSize:14,cursor:'pointer'}}>📖 Guide</button>
+          <div style={{flex:1,overflowY:'auto',display:'flex',alignItems:'center',justifyContent:'center',padding:32}}>
+            <div style={{maxWidth:640,width:'100%',textAlign:'center'}}>
+              <div style={{...eyebrow,marginBottom:10}}>◈ Your Journey</div>
+              <h2 style={{color:C.text,fontSize:22,fontWeight:700,margin:'0 0 6px',letterSpacing:-0.4}}>Get set up in three steps</h2>
+              <p style={{color:C.muted,fontSize:13,margin:'0 0 26px'}}>Select a project on the left, or start fresh below.</p>
+
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:12,marginBottom:26}}>
+                {[
+                  { n:'01', t:'Create a project', d:'Name it, describe it. It syncs to every teammate instantly.' },
+                  { n:'02', t:'Fill the context', d:'Write what Claude should always know — stack, decisions, files.' },
+                  { n:'03', t:'Chat, together', d:'Everyone types at once. Responses stream live for the whole team.' },
+                ].map(s=>(
+                  <div key={s.n} style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,padding:'16px 14px',textAlign:'left'}}>
+                    <div style={{fontFamily:C.mono,fontSize:11,color:C.dim,letterSpacing:'0.1em',marginBottom:10}}>LEVEL {s.n}</div>
+                    <div style={{color:C.text,fontSize:13.5,fontWeight:600,marginBottom:6}}>{s.t}</div>
+                    <div style={{color:C.muted,fontSize:11.5,lineHeight:1.6}}>{s.d}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+                <button onClick={() => setShowNew(true)} style={{padding:'10px 22px',background:C.grad,border:'none',borderRadius:4,color:C.onAcc,fontSize:14,fontWeight:600,cursor:'pointer'}}>+ New Project</button>
+                <button onClick={() => setShowGuide(true)} style={{padding:'10px 16px',background:'transparent',border:`1px solid ${C.b2}`,borderRadius:4,color:C.muted,fontSize:14,cursor:'pointer'}}>Guide →</button>
+              </div>
             </div>
           </div>
         ) : loading ? (
@@ -709,27 +744,50 @@ export default function App() {
             {tab==='state' && (
               <div style={{flex:1,overflowY:'auto',padding:22,display:'flex',flexDirection:'column',gap:16}}>
 
-                {/* Stats bar from real DB */}
+                {/* Stats bar from real DB — benchmark-card style infographic */}
                 {dbProgress.length > 0 && (() => {
                   const done=dbProgress.filter(r=>r.status==='✅ Done').length
                   const wip=dbProgress.filter(r=>r.status==='🔄 In Progress').length
                   const todo=dbProgress.filter(r=>r.status==='⬜ Todo').length
                   const blk=dbProgress.filter(r=>r.status==='❌ Blocked').length
-                  const pct=Math.round((done/dbProgress.length)*100)
+                  const total=dbProgress.length
+                  const pct=Math.round((done/total)*100)
+                  const segs=[{l:'Done',c:done,col:'#4ADE80'},{l:'In Progress',c:wip,col:'#60A5FA'},{l:'Todo',c:todo,col:'#A8A29E'},{l:'Blocked',c:blk,col:'#F87171'}].filter(s=>s.c>0)
                   return (
-                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                        {[{l:'Done',c:done,bg:'#052E16',col:'#4ADE80',b:'#166534'},{l:'In Progress',c:wip,bg:'#172554',col:'#60A5FA',b:'#1E3A5F'},{l:'Todo',c:todo,bg:'#1C1917',col:'#A8A29E',b:'#292524'},{l:'Blocked',c:blk,bg:'#2D0A0A',col:'#F87171',b:'#5A1010'}].filter(s=>s.c>0).map(s=>(
-                          <div key={s.l} style={{padding:'8px 16px',background:s.bg,border:`1px solid ${s.b}`,borderRadius:5,textAlign:'center',minWidth:72}}>
-                            <div style={{color:s.col,fontSize:22,fontWeight:700}}>{s.c}</div>
-                            <div style={{color:s.col,fontSize:11,opacity:.8}}>{s.l}</div>
+                    <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,overflow:'hidden'}}>
+                      {/* headline metric */}
+                      <div style={{padding:'18px 20px 14px',borderBottom:`1px solid ${C.b1}`,display:'flex',alignItems:'flex-end',justifyContent:'space-between',flexWrap:'wrap',gap:14}}>
+                        <div>
+                          <div style={{...eyebrow,fontSize:9.5,marginBottom:6}}>◈ Project Completion</div>
+                          <div style={{display:'flex',alignItems:'baseline',gap:8}}>
+                            <span style={{color:C.text,fontSize:42,fontWeight:700,letterSpacing:-1.5,fontFamily:C.mono}}>{pct}</span>
+                            <span style={{color:C.dim,fontSize:20,fontWeight:600}}>%</span>
                           </div>
-                        ))}
-                        <div style={{flex:1,display:'flex',alignItems:'center',gap:10,paddingLeft:4}}>
-                          <div style={{flex:1,height:7,background:'#1A1D2E',borderRadius:3,overflow:'hidden'}}>
-                            <div style={{width:`${pct}%`,height:'100%',background:'linear-gradient(90deg,#22C55E,#4ADE80)',borderRadius:3,transition:'width .5s'}}/>
-                          </div>
-                          <span style={{color:'#4ADE80',fontSize:13,fontWeight:600,flexShrink:0}}>{pct}%</span>
+                          <div style={{color:C.muted,fontSize:11.5,marginTop:2}}>{done} of {total} modules shipped</div>
+                        </div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                          {[{l:'Done',c:done,col:'#4ADE80'},{l:'WIP',c:wip,col:'#60A5FA'},{l:'Todo',c:todo,col:'#A8A29E'},{l:'Blocked',c:blk,col:'#F87171'}].filter(s=>s.c>0).map(s=>(
+                            <div key={s.l} style={{padding:'8px 14px',background:'#050505',border:`1px solid ${C.b1}`,borderRadius:5,textAlign:'center',minWidth:64}}>
+                              <div style={{color:s.col,fontSize:19,fontWeight:700,fontFamily:C.mono}}>{s.c}</div>
+                              <div style={{...eyebrow,fontSize:8.5,color:s.col,opacity:.8}}>{s.l}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* segmented benchmark-style bar */}
+                      <div style={{padding:'14px 20px 18px'}}>
+                        <div style={{display:'flex',width:'100%',height:9,borderRadius:3,overflow:'hidden',background:'#050505',border:`1px solid ${C.b1}`}}>
+                          {segs.map(s=>(
+                            <div key={s.l} title={`${s.l}: ${s.c}`} style={{width:`${(s.c/total)*100}%`,background:s.col,transition:'width .5s'}}/>
+                          ))}
+                        </div>
+                        <div style={{display:'flex',gap:16,marginTop:9,flexWrap:'wrap'}}>
+                          {segs.map(s=>(
+                            <div key={s.l} style={{display:'flex',alignItems:'center',gap:6}}>
+                              <div style={{width:7,height:7,borderRadius:1,background:s.col,flexShrink:0}}/>
+                              <span style={{color:C.muted,fontSize:11}}>{s.l} <span style={{color:C.dim}}>({s.c})</span></span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -739,16 +797,16 @@ export default function App() {
                 {/* Module progress table from DB */}
                 {dbProgress.length > 0 && (
                   <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,overflow:'hidden'}}>
-                    <div style={{padding:'8px 14px',background:'#0A0C14',borderBottom:`1px solid ${C.b2}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <span style={{color:'#E5E5E5',fontSize:13,fontWeight:600}}>Module Progress</span>
-                      <span style={{color:C.dim,fontSize:11}}>{dbProgress.filter(r=>r.status==='🔄 In Progress').map(r=>r.module).join(', ')||'nothing active'}</span>
+                    <div style={{padding:'10px 14px',background:'#050505',borderBottom:`1px solid ${C.b2}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span style={{...eyebrow,fontSize:10}}>▸ Module Progress</span>
+                      <span style={{color:C.dim,fontSize:11,fontFamily:C.mono}}>{dbProgress.filter(r=>r.status==='🔄 In Progress').map(r=>r.module).join(', ')||'nothing active'}</span>
                     </div>
                     <div style={{overflowX:'auto'}}>
                       <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
                         <thead>
-                          <tr style={{background:'#0D0F17'}}>
+                          <tr style={{background:'#050505'}}>
                             {['Module','File','Status','Notes','Updated'].map(h=>(
-                              <th key={h} style={{padding:'7px 12px',textAlign:'left',color:C.muted,fontWeight:500,borderBottom:`1px solid ${C.b2}`,whiteSpace:'nowrap'}}>{h}</th>
+                              <th key={h} style={{padding:'7px 12px',textAlign:'left',color:C.dim,fontWeight:600,fontSize:10,letterSpacing:'0.08em',textTransform:'uppercase',borderBottom:`1px solid ${C.b2}`,whiteSpace:'nowrap'}}>{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -778,9 +836,9 @@ export default function App() {
                 {/* AI Reviews section */}
                 {aiReviews.length > 0 && (
                   <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,overflow:'hidden'}}>
-                    <div style={{padding:'8px 14px',background:'#0A0C14',borderBottom:`1px solid ${C.b2}`}}>
-                      <span style={{color:'#E5E5E5',fontSize:13,fontWeight:600}}>AI Code Reviews</span>
-                      <span style={{color:C.dim,fontSize:11,marginLeft:10}}>{aiReviews.filter(r=>!r.approved).length} pending · {aiReviews.filter(r=>r.approved).length} approved</span>
+                    <div style={{padding:'10px 14px',background:'#050505',borderBottom:`1px solid ${C.b2}`}}>
+                      <span style={{...eyebrow,fontSize:10}}>▸ AI Code Reviews</span>
+                      <span style={{color:C.dim,fontSize:11,marginLeft:10,fontFamily:C.mono}}>{aiReviews.filter(r=>!r.approved).length} pending · {aiReviews.filter(r=>r.approved).length} approved</span>
                     </div>
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
                       {aiReviews.slice(0,5).map((r,i)=>(
@@ -803,7 +861,7 @@ export default function App() {
                 {/* Context document (non-progress sections) */}
                 {context && (
                   <div style={{background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,padding:'14px 16px'}}>
-                    <div style={{color:'#E5E5E5',fontSize:12.5,fontWeight:600,marginBottom:8}}>📋 Project Knowledge Base</div>
+                    <div style={{...eyebrow,fontSize:10,marginBottom:10}}>▸ Project Knowledge Base</div>
                     <pre style={{color:'#94A3B8',fontSize:13,lineHeight:1.8,whiteSpace:'pre-wrap',wordBreak:'break-word',fontFamily:'Inter,system-ui,sans-serif',margin:0}}>
                       {context.replace(/PROGRESS_START[\s\S]*?PROGRESS_END/g,'').trim()}
                     </pre>
@@ -825,15 +883,17 @@ export default function App() {
               <>
                 <div style={{flex:1,overflowY:'auto',padding:'18px 22px',display:'flex',flexDirection:'column',gap:14}}>
                   {messages.length===0 && (
-                    <div style={{textAlign:'center',color:'#2D3A4A',marginTop:60}}>
-                      <div style={{fontSize:40,marginBottom:10}}>💬</div>
-                      <p style={{fontSize:15,margin:'0 0 4px',color:'#475569'}}>No messages yet in <strong>{proj.name}</strong></p>
-                      <div style={{marginTop:16,padding:'14px 20px',background:'#0A1020',border:'1px solid #1A2A40',borderRadius:6,display:'inline-block',textAlign:'left'}}>
-                        <p style={{fontSize:12,color:'#374151',margin:'0 0 6px',fontWeight:600}}>How Claude responds here:</p>
-                        <p style={{fontSize:12,color:'#2D3A4A',margin:'0 0 4px'}}>1. You type a message → it saves to Supabase</p>
-                        <p style={{fontSize:12,color:'#2D3A4A',margin:'0 0 4px'}}>2. Claude Desktop (with VaultAI MCP) sees it</p>
-                        <p style={{fontSize:12,color:'#2D3A4A',margin:'0 0 4px'}}>3. Claude replies → auto-saves back here</p>
-                        <p style={{fontSize:12,color:'#2D3A4A',margin:0}}>4. All teammates see everything in real-time ✅</p>
+                    <div style={{textAlign:'center',marginTop:60}}>
+                      <div style={{...eyebrow,fontSize:9.5,marginBottom:8}}>◈ New Conversation</div>
+                      <p style={{fontSize:15,margin:'0 0 16px',color:C.muted}}>No messages yet in <strong style={{color:C.text}}>{proj.name}</strong></p>
+                      <div style={{margin:'0 auto',maxWidth:340,padding:'14px 18px',background:C.panel,border:`1px solid ${C.b2}`,borderRadius:6,textAlign:'left'}}>
+                        <div style={{...eyebrow,fontSize:9.5,margin:'0 0 10px'}}>How Claude responds here</div>
+                        {['You type a message → it saves to Supabase','Claude Desktop (with VaultAI MCP) sees it','Claude replies → auto-saves back here','All teammates see everything in real-time'].map((step,i)=>(
+                          <div key={i} style={{display:'flex',gap:9,alignItems:'flex-start',marginBottom:i<3?7:0}}>
+                            <span style={{fontFamily:C.mono,fontSize:10,color:C.dim,flexShrink:0,marginTop:1}}>{String(i+1).padStart(2,'0')}</span>
+                            <span style={{fontSize:12,color:C.muted,lineHeight:1.5}}>{step}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
